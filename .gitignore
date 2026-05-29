@@ -1,0 +1,160 @@
+# Claude
+CLAUDE.md
+.claude/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+.env.staging
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+jspm_packages/
+bower_components/
+vendor/
+.venv/
+venv/
+env/
+__pypackages__/
+Pipfile.lock
+poetry.lock
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.cache/
+.parcel-cache/
+.turbo/
+.svelte-kit/
+.expo/
+.vercel/
+.netlify/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.dll
+*.class
+*.jar
+target/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.iml
+*.iws
+*.ipr
+.metals/
+.bloop/
+
+# Testing
+coverage/
+.nyc_output/
+.pytest_cache/
+htmlcov/
+*.lcov
+jest-results/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Package managers
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Temp / misc
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+.sass-cache/
+.grunt/
+
+# Docker
+docker-compose.override.yml
+
+# Serverless
+.serverless/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Mobile
+*.ipa
+*.apk
+*.aab
+ios/Pods/
+android/.gradle/
+android/local.properties

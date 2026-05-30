@@ -1,0 +1,32 @@
+name: Engine 1 — Process Queue
+
+on:
+  repository_dispatch:
+    types: [agent-done]    # fires automatically after agent.yml finishes
+  workflow_dispatch:        # also manually triggerable
+
+jobs:
+  run-engine:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install PyTorch (CPU)
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Run Engine 1 queue processor
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          CLOUD_AGENT_ENDPOINT: ${{ secrets.CLOUD_AGENT_ENDPOINT }}
+        run: python src/run_engine_queue.py

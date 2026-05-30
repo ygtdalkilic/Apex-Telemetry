@@ -36,14 +36,14 @@ def main():
     _db = db_mod.DatabaseManager()
 
     print("[MAIN] Training Engine 1 gatekeeper...")
-    model = e1.train_gatekeeper()
+    model, threshold = e1.train_gatekeeper()
 
     print("[MAIN] Starting log generator in background thread...")
     gen_thread = threading.Thread(target=gen.run, args=(LOG_PATH,), daemon=True)
     gen_thread.start()
 
     print("[MAIN] Streaming live logs through Engine 1...")
-    e1.stream(LOG_PATH, model, _db, _handle_anomaly)
+    e1.stream(LOG_PATH, model, threshold, _db, _handle_anomaly)
 
 
 if __name__ == "__main__":

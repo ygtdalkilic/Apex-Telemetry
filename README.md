@@ -1,40 +1,54 @@
 # Apex-Telemetry (Still in development)
 
-A real-time server log pipeline that uses machine learning to separate the noise from actual threats — then ships the weird stuff off to a cloud LLM to figure out what went wrong and why.
-
-The idea: most log anomaly tools either drown you in false positives or miss the subtle ones. This one runs a fast Scikit-Learn filter first (cheap, instant), and only escalates the genuinely suspicious lines to a cloud AI agent for deep analysis. Two engines, one pipeline.
+A real-time server log pipeline with a dual-engine architecture. A local AI agent searches the internet for threat intelligence, a PyTorch autoencoder classifies everything in real time, and anomalies get routed to a cloud LLM for forensic analysis.
 
 ---
 
 ## How it works
 
 ```
-Live Log Stream
-      │
-      ▼
-┌─────────────┐
-│  Engine 1   │  IsolationForest scores every line as it comes in
-│ (Gatekeeper)│
-└──────┬──────┘
-       │
-  ┌────┴─────┐
-  │          │
-Normal     Anomaly
-  │          │
-  ▼          ▼
-MongoDB   router.py ──► Cloud LLM Agent
-safe_      active_           │
-traffic    threats            └─► pending_analysis.json (if offline)
+GitHub Actions (every 6h)
+        │
+        ▼
+  agent.py — DuckDuckGo search + Phi-3 Mini (local SLM)
+        │     reasons about each result: low / medium / high threat
+        ▼
+  MongoDB: raw_queue        ← Container 1 (raw AI findings)
+        │
+        ▼
+  Engine 1 — PyTorch Autoencoder
+  trains on normal traffic, flags by reconstruction error
+        │
+   ┌────┴────┐
+   ▼         ▼
+safe_traffic  active_threats  ← Container 2 & 3
+                │
+                ▼
+           router.py ──► Cloud LLM Agent (or pending_analysis.json)
+
+  Parallel: live log stream from log_generator.py
+  also feeds Engine 1 in real time via main.py
 ```
 
-Engine 1 trains on a sample of healthy traffic on startup, then watches the live log file line by line. Anything that looks statistically out of place gets flagged and sent to the router. The router packages the anomaly alongside the 3 preceding normal logs for context, then POSTs it to your cloud agent — or dumps it locally if there's no endpoint configured.
+---
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| AI Agent | DuckDuckGo Search + Ollama Phi-3 Mini (local) |
+| ML Engine | PyTorch Autoencoder (anomaly detection) |
+| Database | MongoDB Atlas |
+| Automation | GitHub Actions (scheduled + event-driven) |
+| Cloud Router | REST POST to cloud LLM agent |
 
 ---
 
 ## What you need
 
 - Python 3.13+
-- MongoDB — either running locally or a free Atlas cluster
+- [Ollama](https://ollama.com) with `phi3:mini` pulled
+- MongoDB Atlas free cluster (or local `mongod`)
 - `pip install -r requirements.txt`
 
 ---
@@ -46,43 +60,42 @@ Engine 1 trains on a sample of healthy traffic on startup, then watches the live
 git clone https://github.com/ygtdalkilic/Apex-Telemetry.git
 cd Apex-Telemetry
 pip install -r requirements.txt
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-**MongoDB — pick one:**
+**Pull the local model:**
+```powershell
+ollama pull phi3:mini
+```
 
-Local: download the Community Server from [mongodb.com/try/download/community](https://www.mongodb.com/try/download/community), install it as a Windows service and you're done.
-
-Atlas (easier, no install): spin up a free M0 cluster at [cloud.mongodb.com](https://cloud.mongodb.com), grab your connection string, then:
+**Set your MongoDB URI:**
 ```powershell
 $env:MONGO_URI = "mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/"
 ```
 
-**Optionally point it at your cloud agent:**
+**Optionally set a cloud agent endpoint:**
 ```powershell
 $env:CLOUD_AGENT_ENDPOINT = "https://your-agent-url"
 ```
-If you skip this, flagged anomalies just pile up in `data/pending_analysis.json` — useful for debugging locally.
 
 ---
 
-## Run it
+## Run
 
+**Live log pipeline (local):**
 ```powershell
-cd src
-python main.py
+& "C:\...\python.exe" src\main.py
 ```
 
-It'll train the model, spin up the log generator in the background, and start classifying. You'll see something like:
-
-```
-[DB] Connected to mongodb://localhost:27017/
-[E1] Model trained on 500 normal samples.
-[GEN] Writing logs to data/live_stream.log — Ctrl+C to stop
-[E1] processed=50 safe=48 flagged=2 rate=9.8/s mem_peak=0.14MB
-[ROUTER] CLOUD_AGENT_ENDPOINT not set — writing to pending file.
+**AI agent only (search + queue):**
+```powershell
+& "C:\...\python.exe" src\agent.py
 ```
 
-Hit `Ctrl+C` to stop — it shuts down cleanly.
+**Process queued agent findings through Engine 1:**
+```powershell
+& "C:\...\python.exe" src\run_engine_queue.py
+```
 
 ---
 
@@ -90,15 +103,21 @@ Hit `Ctrl+C` to stop — it shuts down cleanly.
 
 ```
 src/
-├── main.py           # start here — wires everything together
-├── db_manager.py     # MongoDB connection + insert helpers
-├── log_generator.py  # fake Nginx traffic (95% normal, 5% nasty)
-├── engine_1.py       # IsolationForest training + live stream classifier
-└── router.py         # sends anomalies to cloud or saves them locally
+├── main.py              # live pipeline entry point
+├── agent.py             # AI agent — searches web, reasons with Phi-3
+├── engine_1.py          # PyTorch autoencoder — trains + classifies
+├── run_engine_queue.py  # drains raw_queue (used by GitHub Actions)
+├── db_manager.py        # MongoDB collections
+├── log_generator.py     # simulates 95% normal / 5% anomalous traffic
+└── router.py            # routes threats to cloud or local fallback
+
+.github/workflows/
+├── agent.yml            # runs agent every 6h, triggers engine
+└── engine.yml           # processes queue after agent finishes
 
 data/
-├── live_stream.log        # generated while running
-└── pending_analysis.json  # anomaly buffer when cloud is unreachable
+├── live_stream.log        # generated at runtime
+└── pending_analysis.json  # offline anomaly buffer
 ```
 
 ---
@@ -107,9 +126,20 @@ data/
 
 | Collection | What's in it |
 |---|---|
-| `safe_traffic` | Every log line Engine 1 cleared as normal |
-| `active_threats` | Lines flagged as anomalies, waiting on LLM analysis |
-| `raw_logs` | Reserved for future raw capture |
+| `raw_queue` | Raw findings from the AI agent, pending Engine 1 |
+| `safe_traffic` | Logs Engine 1 scored as normal |
+| `active_threats` | Flagged anomalies, routed for LLM analysis |
+
+---
+
+## GitHub Actions
+
+Add `MONGO_URI` as a repository secret under **Settings → Secrets → Actions**.
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `agent.yml` | Every 6h or manual | Runs AI agent, queues findings, fires engine |
+| `engine.yml` | After agent or manual | Trains model, drains queue, classifies |
 
 ---
 
@@ -117,8 +147,8 @@ data/
 
 | Variable | Default | What it does |
 |---|---|---|
-| `MONGO_URI` | `mongodb://localhost:27017/` | Where to connect for storage |
-| `CLOUD_AGENT_ENDPOINT` | _(not set)_ | Where to POST anomalies for LLM analysis |
+| `MONGO_URI` | `mongodb://localhost:27017/` | MongoDB connection |
+| `CLOUD_AGENT_ENDPOINT` | _(not set)_ | POST target for flagged anomalies |
 
 ---
 

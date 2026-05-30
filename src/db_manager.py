@@ -10,6 +10,7 @@ class DatabaseManager:
             self.client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=5000)
             self.client.server_info()
             db = self.client["apex_telemetry"]
+            self.raw_queue = db["raw_queue"]
             self.raw_logs = db["raw_logs"]
             self.safe_traffic = db["safe_traffic"]
             self.active_threats = db["active_threats"]

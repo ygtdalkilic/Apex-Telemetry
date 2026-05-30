@@ -42,6 +42,8 @@ safe_traffic  active_threats  ← Container 2 & 3
 | Automation | GitHub Actions (scheduled + event-driven) |
 | Cloud Router | REST POST to cloud LLM agent |
 
+> **Note:** The cloud LLM router (`CLOUD_AGENT_ENDPOINT`) is architected and ready but not active — no budget for a hosted LLM service during development. Phi-3 Mini running locally via Ollama is used in its place for testing. The cloud integration will be wired in once the project moves past the development phase.
+
 ---
 
 ## What you need

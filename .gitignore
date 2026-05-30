@@ -2,6 +2,9 @@
 CLAUDE.md
 .claude/
 
+# Local scripts
+stop-ollama.ps1
+
 # Environment
 .env
 .env.local

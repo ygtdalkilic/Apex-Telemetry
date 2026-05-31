@@ -25,7 +25,6 @@ setuptools==70.2.0
 six==1.17.0
 sympy==1.14.0
 threadpoolctl==3.6.0
-torch==2.12.0+cpu
 typing_extensions==4.15.0
 tzdata==2026.2
 urllib3==2.7.0

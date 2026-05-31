@@ -1,9 +1,7 @@
 name: AI Agent — Search & Queue
 
 on:
-  schedule:
-    - cron: "0 */6 * * *"   # runs every 6 hours
-  workflow_dispatch:          # allows manual trigger from GitHub UI
+  workflow_dispatch:          # manual trigger only (re-enable schedule when ready for production)
 
 jobs:
   run-agent:
